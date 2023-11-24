@@ -1,4 +1,5 @@
  # Importing required packages
+import hmac
 import streamlit as st
 import openai
 import uuid
