@@ -59,11 +59,11 @@ if not check_password():
 
 
 # Set up the page
-st.set_page_config(page_title="Enter title here")
-st.sidebar.title("Title")
+st.set_page_config(page_title="Zapytaj KUCa 💩")
+st.sidebar.title("Zapytaj KUCa 💩")
 st.sidebar.divider()
-st.sidebar.markdown("Your name", unsafe_allow_html=True)
-st.sidebar.markdown("Assistant GPT")
+st.sidebar.markdown("Masz pytania w temacie srołków i robienia kupy? 💩", unsafe_allow_html=True)
+st.sidebar.markdown("Zapytaj naszego asystenta KUCa!")
 st.sidebar.divider()
 
 # File uploader for CSV, XLS, XLSX
@@ -117,7 +117,7 @@ elif hasattr(st.session_state.run, 'status') and st.session_state.run.status == 
                     st.markdown(message_text)
 
 # Chat input and message creation with file ID
-if prompt := st.chat_input("How can I help you?"):
+if prompt := st.chat_input("Jak możemy Ci dzisiaj pomóc?"):
     with st.chat_message('user'):
         st.write(prompt)
 
@@ -145,7 +145,7 @@ if prompt := st.chat_input("How can I help you?"):
 if hasattr(st.session_state.run, 'status'):
     if st.session_state.run.status == "running":
         with st.chat_message('assistant'):
-            st.write("Thinking ......")
+            st.write("Myślę...")
         if st.session_state.retry_error < 3:
             time.sleep(1)
             st.rerun()
