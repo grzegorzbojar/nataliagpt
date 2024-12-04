@@ -7,7 +7,10 @@ import time
 import pandas as pd
 import io
 from openai import OpenAI
+from streamlit_cookies_controller import CookieController
 
+# Initialize cookie controller
+cookie_controller = CookieController()
 
 # Initialize OpenAI client
 client = OpenAI()
@@ -77,24 +80,25 @@ if "assistant" not in st.session_state:
     st.session_state.assistant = openai.beta.assistants.retrieve(
         st.secrets["assistant_id"]
     )
-    st.session_state.thread = client.beta.threads.create(
-        metadata={"session_id": st.session_state.session_id}
-    )
+    if "ThreadID" in cookie_controller.getAll():
+        st.session_state.thread = client.beta.threads.retrieve(
+            cookie_controller.get("ThreadID")
+        )
+    else:
+        st.session_state.thread = client.beta.threads.create()
+        cookie_controller.set("ThreadID", st.session_state.thread.id)
+
 
 # Display chat messages
-elif (
-    hasattr(st.session_state.run, "status")
-    and st.session_state.run.status == "completed"
-):
-    st.session_state.messages = client.beta.threads.messages.list(
-        thread_id=st.session_state.thread.id
-    )
-    for message in reversed(st.session_state.messages.data):
-        if message.role in ["user", "assistant"]:
-            with st.chat_message(message.role):
-                for content_part in message.content:
-                    message_text = content_part.text.value
-                    st.markdown(message_text)
+st.session_state.messages = client.beta.threads.messages.list(
+    thread_id=st.session_state.thread.id
+)
+for message in reversed(st.session_state.messages.data):
+    if message.role in ["user", "assistant"]:
+        with st.chat_message(message.role):
+            for content_part in message.content:
+                message_text = content_part.text.value
+                st.markdown(message_text)
 
 # Chat input and message creation with file ID
 if prompt := st.chat_input("Jak moge Ci dzisiaj pomóc?"):
