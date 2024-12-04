@@ -1,4 +1,4 @@
- # Importing required packages
+# Importing required packages
 import hmac
 import streamlit as st
 import openai
@@ -9,12 +9,11 @@ import io
 from openai import OpenAI
 
 
-
 # Initialize OpenAI client
 client = OpenAI()
 
 # Your chosen model
-MODEL = "gpt-4-1106-preview"
+# MODEL = "gpt-4-1106-preview"
 
 # Initialize session state variables
 if "session_id" not in st.session_state:
@@ -46,11 +45,9 @@ def check_password():
         return True
 
     # Show input for password.
-    st.text_input(
-        "Password", type="password", on_change=password_entered, key="password"
-    )
+    st.text_input("Hasło", type="password", on_change=password_entered, key="password")
     if "password_correct" in st.session_state:
-        st.error("😕 Password incorrect")
+        st.error("😕 Niepoprawne hasło")
     return False
 
 
@@ -59,53 +56,36 @@ if not check_password():
 
 
 # Set up the page
-st.set_page_config(page_title="Zapytaj KUCa 💩")
-st.sidebar.title("Zapytaj KUCa 💩")
+st.set_page_config(page_title="Natalia GPT", page_icon=":robot_face:")
+st.sidebar.title("🤖 Natalia GPT")
+
+st.sidebar.markdown("Twoj osobisty asystent w pisaniu pracy.")
 st.sidebar.divider()
-st.sidebar.markdown("Masz pytania w temacie srołków i robienia kupy? 💩", unsafe_allow_html=True)
-st.sidebar.markdown("Zapytaj naszego asystenta KUCa!")
+st.sidebar.markdown("Masz pytania, lub wszelkiego rodzaju problemy?")
+st.sidebar.markdown("Zapytaj swojego asystenta!")
 st.sidebar.divider()
-
-# File uploader for CSV, XLS, XLSX
-uploaded_file = st.file_uploader("Upload your file", type=["csv", "xls", "xlsx"])
-
-if uploaded_file is not None:
-    # Determine the file type
-    file_type = uploaded_file.type
-
-    try:
-        # Read the file into a Pandas DataFrame
-        if file_type == "text/csv":
-            df = pd.read_csv(uploaded_file)
-        elif file_type in ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]:
-            df = pd.read_excel(uploaded_file)
-
-        # Convert DataFrame to JSON
-        json_str = df.to_json(orient='records', indent=4)
-        file_stream = io.BytesIO(json_str.encode())
-
-        # Upload JSON data to OpenAI and store the file ID
-        file_response = client.files.create(file=file_stream, purpose='answers')
-        st.session_state.file_id = file_response.id
-        st.success("File uploaded successfully to OpenAI!")
-
-        # Optional: Display and Download JSON
-        st.text_area("JSON Output", json_str, height=300)
-        st.download_button(label="Download JSON", data=json_str, file_name="converted.json", mime="application/json")
-    
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
 
 # Initialize OpenAI assistant
+
+
+from openai import OpenAI
+
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI()
+
 if "assistant" not in st.session_state:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
-    st.session_state.assistant = openai.beta.assistants.retrieve(st.secrets["OPENAI_ASSISTANT"])
+    st.session_state.assistant = openai.beta.assistants.retrieve(
+        st.secrets["assistant_id"]
+    )
     st.session_state.thread = client.beta.threads.create(
-        metadata={'session_id': st.session_state.session_id}
+        metadata={"session_id": st.session_state.session_id}
     )
 
 # Display chat messages
-elif hasattr(st.session_state.run, 'status') and st.session_state.run.status == "completed":
+elif (
+    hasattr(st.session_state.run, "status")
+    and st.session_state.run.status == "completed"
+):
     st.session_state.messages = client.beta.threads.messages.list(
         thread_id=st.session_state.thread.id
     )
@@ -117,14 +97,14 @@ elif hasattr(st.session_state.run, 'status') and st.session_state.run.status == 
                     st.markdown(message_text)
 
 # Chat input and message creation with file ID
-if prompt := st.chat_input("Jak możemy Ci dzisiaj pomóc?"):
-    with st.chat_message('user'):
+if prompt := st.chat_input("Jak moge Ci dzisiaj pomóc?"):
+    with st.chat_message("user"):
         st.write(prompt)
 
     message_data = {
         "thread_id": st.session_state.thread.id,
         "role": "user",
-        "content": prompt
+        "content": prompt,
     }
 
     # Include file ID in the request if available
@@ -142,9 +122,9 @@ if prompt := st.chat_input("Jak możemy Ci dzisiaj pomóc?"):
         st.rerun()
 
 # Handle run status
-if hasattr(st.session_state.run, 'status'):
+if hasattr(st.session_state.run, "status"):
     if st.session_state.run.status == "running":
-        with st.chat_message('assistant'):
+        with st.chat_message("assistant"):
             st.write("Myślę...")
         if st.session_state.retry_error < 3:
             time.sleep(1)
@@ -152,13 +132,13 @@ if hasattr(st.session_state.run, 'status'):
 
     elif st.session_state.run.status == "failed":
         st.session_state.retry_error += 1
-        with st.chat_message('assistant'):
+        with st.chat_message("assistant"):
             if st.session_state.retry_error < 3:
-                st.write("Run failed, retrying ......")
+                st.write("Błąd podczas uruchamiania. Spróbuj ponownie za chwile.")
                 time.sleep(3)
                 st.rerun()
             else:
-                st.error("FAILED: The OpenAI API is currently processing too many requests. Please try again later ......")
+                st.error("Błąd podczas uruchamiania. Spróbuj ponownie za chwile.")
 
     elif st.session_state.run.status != "completed":
         st.session_state.run = client.beta.threads.runs.retrieve(
